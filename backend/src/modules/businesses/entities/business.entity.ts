@@ -54,6 +54,10 @@ export class Business extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   invoice_footer: string | null;
 
+  /** Letters every new subscriber account number starts with, e.g. FBI → FBI0001. */
+  @Column({ type: 'varchar', length: 10, default: 'FBI' })
+  account_prefix: string;
+
   @Column({ type: 'varchar', length: 3, default: 'KES' })
   currency: string;
 

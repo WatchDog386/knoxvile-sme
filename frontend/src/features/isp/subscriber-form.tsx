@@ -146,7 +146,7 @@ export function SubscriberForm({
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!accountNumber.trim()) throw new Error('Enter the account number, e.g. FBI001.');
+      if (!accountNumber.trim()) throw new Error(`Enter the account number, e.g. ${options?.nextAccountNumber ?? 'FBI001'}.`);
       if (!name.trim()) throw new Error('Enter the full name.');
       if (!packageId) throw new Error('Choose the package the subscriber is on.');
 
@@ -215,13 +215,13 @@ export function SubscriberForm({
       >
         {error && <Alert variant="error" inline>{error}</Alert>}
         <Section title="Subscriber">
-          <Field label="Account number" htmlFor="sf-account" hint="As in the billing system, e.g. FBI001.">
+          <Field label="Account number" htmlFor="sf-account" hint={`As in the billing system, e.g. ${options?.nextAccountNumber ?? 'FBI001'}.`}>
             <Input
               id="sf-account"
               autoComplete="off"
               autoCapitalize="characters"
               className="uppercase"
-              placeholder="FBI001"
+              placeholder={options?.nextAccountNumber ?? 'FBI001'}
               value={accountNumber}
               onChange={(e) => {
                 const value = e.target.value.toUpperCase();

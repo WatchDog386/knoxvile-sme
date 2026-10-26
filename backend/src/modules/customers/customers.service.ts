@@ -8,18 +8,19 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
 import { Customer } from './entities/customer.entity';
+import { Business } from '../businesses/entities/business.entity';
 import { AuditService } from '../audit/audit.service';
 import { CreateCustomerDto, UpdateCustomerDto } from './dto/customer.dto';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
 
-/** Every subscriber account number starts with this, e.g. FBI0001 (no hyphen, as in the billing system). */
-const ACCOUNT_PREFIX = 'FBI';
+/** Account numbers a business gets when nobody has set a prefix yet, e.g. FBI0001 (no hyphen, as in the billing system). */
+export const DEFAULT_ACCOUNT_PREFIX = 'FBI';
 
 /** FBI-011, "fbi 011" and FBI011 are saved as FBI011 (digits kept as typed); anything else is just uppercased. */
 export function normaliseAccountNumber(value: string): string {
   const compact = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const fbi = /^FBI(\d+)$/.exec(compact);
-  return fbi ? `${ACCOUNT_PREFIX}${fbi[1]}` : value.trim().toUpperCase();
+  const parts = /^([A-Z]+)(\d+)$/.exec(compact);
+  return parts ? `${parts[1]}${parts[2]}` : value.trim().toUpperCase();
 }
 
 /**
@@ -27,14 +28,16 @@ export function normaliseAccountNumber(value: string): string {
  * FBI011, FBI0011, FBI-11 and fbi 11 all give "FBI11". Used to match.
  */
 export function accountKey(value: string): string {
-  const compact = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const fbi = /^FBI0*(\d+)$/.exec(compact);
-  return fbi ? `FBI${fbi[1]}` : compact;
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .replace(/^([A-Z]+)0*(\d)/, '$1$2');
 }
 
 /** SQL for accountKey() of a column, to compare against accountKey() of what was typed. */
 export function accountKeySql(column: string): string {
-  return `REGEXP_REPLACE(REGEXP_REPLACE(UPPER(COALESCE(${column}, '')), '[^A-Z0-9]', '', 'g'), '^FBI0*([0-9])', 'FBI\\1')`;
+  return `REGEXP_REPLACE(REGEXP_REPLACE(UPPER(COALESCE(${column}, '')), '[^A-Z0-9]', '', 'g'), '^([A-Z]+)0*([0-9])', '\\1\\2')`;
 }
 
 /** Maps the subscriber fields that were sent onto entity columns. */
@@ -282,20 +285,28 @@ export class CustomersService implements OnModuleInit {
 
   /**
    * Next free account number in the billing system's style: one above the
-   * highest FBI number so far (old FBI-0001 ones count too, any case), with
-   * as many digits as that one has (FBI011 → FBI012), at least three.
+   * highest number with the business's prefix so far (old FBI-0001 ones count
+   * too, any case), with as many digits as that one has (FBI011 → FBI012), at least three.
    */
   async nextAccountNumber(businessId: string): Promise<string> {
+    const prefix = await this.accountPrefix(businessId);
     const row = await this.repo
       .createQueryBuilder('c')
       .select(`REGEXP_REPLACE(c.account_number, '[^0-9]', '', 'g')`, 'digits')
       .where('c.businessId = :businessId', { businessId })
-      .andWhere(`c.account_number ~* '^FBI-?[0-9]{1,9}$'`)
+      .andWhere(`c.account_number ~* :pattern`, { pattern: `^${prefix}-?[0-9]{1,9}$` })
       .orderBy(`CAST(REGEXP_REPLACE(c.account_number, '[^0-9]', '', 'g') AS INTEGER)`, 'DESC')
       .limit(1)
       .getRawOne<{ digits: string }>();
     const digits = row?.digits ?? '';
-    return `${ACCOUNT_PREFIX}${String(Number(digits || 0) + 1).padStart(Math.max(3, digits.length), '0')}`;
+    return `${prefix}${String(Number(digits || 0) + 1).padStart(Math.max(3, digits.length), '0')}`;
+  }
+
+  /** The letters this business's account numbers start with (set in Settings). */
+  async accountPrefix(businessId: string): Promise<string> {
+    const business = await this.repo.manager.findOne(Business, { where: { id: businessId }, select: { id: true, account_prefix: true } });
+    const prefix = business?.account_prefix?.trim().toUpperCase();
+    return prefix && /^[A-Z][A-Z0-9]{1,9}$/.test(prefix) ? prefix : DEFAULT_ACCOUNT_PREFIX;
   }
 
   /** Known locations, SMS groups and routers, for the subscriber form's pickers. */

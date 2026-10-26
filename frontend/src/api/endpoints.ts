@@ -116,7 +116,7 @@ export const businessesApi = {
   }) => api<Business>({ method: 'POST', url: '/businesses', data }),
   mine: () => api<Business[]>({ method: 'GET', url: '/businesses/mine' }),
   current: () => api<Business>({ method: 'GET', url: '/businesses/current' }),
-  update: (data: Partial<Business>) =>
+  update: (data: Partial<Business> & { accountPrefix?: string }) =>
     api<Business>({ method: 'PATCH', url: '/businesses/current', data }),
   members: () =>
     api<BusinessMember[]>({ method: 'GET', url: '/businesses/current/members' }),

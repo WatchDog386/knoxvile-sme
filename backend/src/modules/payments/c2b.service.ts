@@ -178,7 +178,7 @@ export class C2bService {
     if (!customer) {
       const phone = C2bService.localPhone(payload.MSISDN);
       const account = ref ? C2bService.normaliseAccount(ref) : '';
-      if (/^FBI\d+$/.test(account)) {
+      if (new RegExp(`^${business.account_prefix || 'FBI'}\\d+$`).test(account)) {
         customer = await this.createSubscriber(business.id, account, name, phone, transId);
         outcome = 'NEW_ACCOUNT';
       } else if (name || phone) {

@@ -70,6 +70,8 @@ export interface Business {
   email: string | null;
   address: string | null;
   county: string | null;
+  /** Letters every new subscriber account number starts with, e.g. KNX → KNX001. */
+  account_prefix: string;
   currency: string;
   timezone: string;
   subscription_plan: string;

@@ -111,6 +111,7 @@ export class BusinessesService {
       ...(dto.currency !== undefined ? { currency: dto.currency } : {}),
       ...(dto.timezone !== undefined ? { timezone: dto.timezone } : {}),
       ...(dto.logoUrl !== undefined ? { logo_url: dto.logoUrl } : {}),
+      ...(dto.accountPrefix !== undefined ? { account_prefix: dto.accountPrefix } : {}),
     });
     await this.businessRepo.save(business);
     await this.auditService.log({

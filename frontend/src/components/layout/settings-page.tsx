@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { TwoFactorSetting } from './two-factor-setting';
 import { BubbleTile } from './profile-visuals';
 import { requestLogout } from './session-timeout';
+import { AccountPrefixCard } from './account-prefix-card';
 
 interface Item {
   to: string;
@@ -112,6 +113,8 @@ export function SettingsPage({ open, onOpenChange }: SettingsPageProps) {
             ))}
           </div>
         </section>
+
+        <AccountPrefixCard />
 
         {/* Account group */}
         <section className="mt-6">

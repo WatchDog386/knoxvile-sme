@@ -4,9 +4,11 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { BUSINESS_TYPES } from '../entities/business.entity';
 import { STAFF_ROLES, UserRole } from '../../../common/types/auth-user.interface';
@@ -94,6 +96,12 @@ export class UpdateBusinessDto {
   @IsOptional()
   @IsString()
   logoUrl?: string;
+
+  @ApiPropertyOptional({ example: 'KNX', description: 'Start of every new subscriber account number (KNX → KNX001)' })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
+  @Matches(/^[A-Z][A-Z0-9]{1,9}$/, { message: 'Use 2 to 10 letters or digits, starting with a letter (e.g. KNX).' })
+  accountPrefix?: string;
 }
 
 export class AddMemberDto {
