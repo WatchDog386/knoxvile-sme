@@ -25,3 +25,7 @@ python-ai-assistant/__pycache__/
 
 # Built Android apps
 *.apk
+
+# Docker deployment (deploy/docker)
+deploy/docker/.env
+deploy/docker/backups/

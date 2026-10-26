@@ -1,0 +1,47 @@
+# Knoxville SME reverse proxy.
+# SITE_ADDRESS=sme.knoxvilletechnologies.com  → automatic HTTPS (Let's Encrypt)
+# SITE_ADDRESS=:80                            → plain HTTP on the server IP (testing only)
+{
+	email {$ACME_EMAIL:admin@example.com}
+}
+
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Quick "is the web server up" check for monitors
+	handle /health {
+		respond "ok" 200
+	}
+
+	# API (JSON bodies up to 10 MB, plus M-Pesa / SMS webhooks)
+	handle /api/* {
+		request_body {
+			max_size 12MB
+		}
+		reverse_proxy api:4100
+	}
+
+	# Web app (single-page app). Hashed files under /assets never change: cache for a year.
+	# Everything else (index.html, sw.js, manifest, icons) is revalidated so updates reach installed copies.
+	handle {
+		@immutable path /assets/*
+		header @immutable Cache-Control "public, max-age=31536000, immutable"
+		@mutable not path /assets/*
+		header @mutable Cache-Control "no-cache"
+		root * /srv/web
+		try_files {path} {path}.html /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
