@@ -121,7 +121,7 @@ const card =
   'rounded-3xl bg-surface shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_28px_-14px_rgba(15,23,42,0.14)] [.dark_&]:border [.dark_&]:border-edge';
 
 function initials(name: string): string {
-  // Only words that start with a letter, so "Korri (Platform Admin)" gives "KP"
+  // Only words that start with a letter, so "Jane (Field Team)" gives "JF"
   return name
     .split(/\s+/)
     .filter((w) => /^\p{L}/u.test(w.replace(/^[^\p{L}]+/u, '')))

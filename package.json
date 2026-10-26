@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "dev:backend": "npm run start:dev -w backend",
+    "start:local": "npm run start:local -w backend",
     "dev:frontend": "npm run dev -w frontend",
     "build": "npm run build -w backend && npm run build -w frontend",
     "test": "npm run test -w backend",

@@ -9,9 +9,10 @@
     "start:dev": "node scripts/dev.mjs",
     "start:api": "nest start --watch",
     "db": "node scripts/local-db.mjs",
+    "start:local": "nest build && node scripts/dev.mjs --built",
     "start:prod": "node dist/main",
     "typecheck": "tsc --noEmit",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "engines": {

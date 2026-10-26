@@ -104,7 +104,7 @@ const STATUS: Record<string, { label: string; tone: StatusTone }> = {
 };
 
 function initials(name: string): string {
-  // Only words that start with a letter, so "Korri (Platform Admin)" gives "KP"
+  // Only words that start with a letter, so "Jane (Field Team)" gives "JF"
   return name
     .split(/\s+/)
     .filter((w) => /^\p{L}/u.test(w.replace(/^[^\p{L}]+/u, '')))
