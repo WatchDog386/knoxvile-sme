@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en" class="booting">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http: https:; script-src * 'self' 'unsafe-inline' 'unsafe-eval' http: https:; style-src * 'self' 'unsafe-inline' http: https:; connect-src * 'self' http: https: ws: wss:;">
+    <meta name="theme-color" content="#0F2341" />
+    <meta name="description" content="Knoxville Technologies Ltd business system — stock, sales, invoices and daily transaction reports." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Knoxville" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="icon" type="image/png" sizes="256x256" href="/icons/favicon-256.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/favicon-512.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Knoxville Technologies</title>
+    <style>
+      /* Boot splash: shown until the app renders. Matches the manifest launch screen. */
+      html.booting, html.booting body { background: #0F2341; }
+      #splash-screen {
+        position: fixed;
+        inset: 0;
+        background: #0F2341;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 24px;
+        z-index: 9999;
+        transition: opacity 0.35s ease, visibility 0.35s ease;
+      }
+      #splash-screen.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      #splash-screen img {
+        width: 176px;
+        max-width: 100%;
+        height: auto;
+        animation: splash-in 0.5s ease-out both;
+      }
+      /* Desktop has no launch screen: the landing page shows straight away. */
+      @media (min-width: 1024px) {
+        #splash-screen { display: none; }
+        html.booting, html.booting body { background: #ffffff; }
+      }
+      @keyframes splash-in {
+        from { opacity: 0; transform: scale(0.96); }
+        to { opacity: 1; transform: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      // The browser may say "this app can be installed" before the app's code
+      // has loaded; keep that event so the install prompt can use it later.
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__installPromptEvent = e;
+      });
+    </script>
+    <div id="splash-screen" aria-hidden="true">
+      <img src="/icons/splash-logo.png" alt="" width="1200" height="576" />
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      (function () {
+        var shownAt = Date.now();
+        // Phones keep the splash up briefly like a native launch screen (desktop hides it via CSS).
+        var minVisible = window.matchMedia('(min-width: 1024px)').matches ? 0 : 1200;
+        var done = false;
+        function hide() {
+          if (done) return;
+          done = true;
+          var wait = Math.max(0, minVisible - (Date.now() - shownAt));
+          setTimeout(function () {
+            var splash = document.getElementById('splash-screen');
+            if (splash) splash.classList.add('hidden');
+            window.dispatchEvent(new Event('splash-hidden'));
+            // The app paints its own backgrounds; drop the blue page fill.
+            document.documentElement.classList.remove('booting');
+            // The status-bar colour is set by the app per page (see lib/theme.ts)
+          }, wait);
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          var root = document.getElementById('root');
+          var observer = new MutationObserver(function () {
+            if (root.hasChildNodes()) {
+              observer.disconnect();
+              hide();
+            }
+          });
+          observer.observe(root, { childList: true });
+          setTimeout(function () {
+            observer.disconnect();
+            hide();
+          }, 4000);
+        });
+      })();
+    </script>
+  </body>
+</html>

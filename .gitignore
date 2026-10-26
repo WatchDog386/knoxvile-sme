@@ -1,0 +1,27 @@
+node_modules/
+dist/
+build/
+*.log
+.DS_Store
+coverage/
+.vite/
+*.tsbuildinfo
+
+# Secrets: never commit real env files
+.env
+.env.*
+!.env.example
+
+# Local databases and scratch output
+*.sqlite
+*.sqlite3
+*.db
+backend/data/
+backend/run.err
+error.txt
+output.txt
+frontend/null
+python-ai-assistant/__pycache__/
+
+# Built Android apps
+*.apk

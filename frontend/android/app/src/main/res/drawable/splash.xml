@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Brand blue background -->
+    <item android:drawable="@color/splash_background" />
+    
+    <!-- White logo with the green dot, centred, no tile around it -->
+    <item
+        android:drawable="@drawable/splash_icon"
+        android:gravity="center"
+        android:width="288dp"
+        android:height="288dp" />
+</layer-list>

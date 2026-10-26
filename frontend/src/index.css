@@ -1,0 +1,480 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /*
+     * Height of the phone's status bar (top) and gesture/nav bar (bottom).
+     * Browsers fill env(); the Android app draws edge to edge and also sets
+     * --safe-area-inset-* itself, because older Android WebViews report 0.
+     * Use these instead of env(safe-area-inset-*) everywhere.
+     */
+    --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+    --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+    color-scheme: light;
+
+    /* Figtree (bundled), close to the Safaricom app's open, rounded lettering */
+    --font-sans: 'Figtree Variable', 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+
+    /* Light theme tokens — Safaricom green (#2DA043) */
+    --surface: 255 255 255;        /* white */
+    --surface-2: 247 249 248;      
+    --surface-3: 238 242 240;      
+    --field: 238 242 240;          /* dull grey-green field bg, distinct from page */
+    --edge: 227 233 230;           
+    --edge-2: 203 213 208;         
+    --foreground: 23 32 28;        
+    --foreground-2: 43 54 49;      
+    --foreground-3: 94 107 101;    
+    --foreground-4: 138 150 144;   
+    --foreground-5: 170 182 176;   
+    --accent: 45 160 67;
+    --accent-strong: 36 133 55;
+    --accent-soft: 234 247 237;
+    --accent-border: 69 182 92;
+    --accent-text: 29 106 44;
+    --success: 0 177 64;           
+    --success-soft: 209 250 229;   
+    --danger: 220 38 38;           
+    --danger-soft: 254 226 226;    
+    --warning: 217 119 6;          
+    --warning-soft: 254 243 199;   
+    --info: 2 132 199;             
+    --info-soft: 240 249 255;      
+
+    /* Desktop sidebar (navy, TrioPay-style) */
+    --nav-bg: 14 33 53;
+    --nav-text: 226 232 240;
+    --nav-muted: 138 154 174;
+    --nav-active: 77 163 255;
+    --nav-hover: 255 255 255;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: #f8fafc;
+    color: rgb(var(--foreground));
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'kern' 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /*
+   * Dark theme — Safaricom app greys: #121212 page, #1E1E1E cards and round
+   * buttons, #303538 unselected pills, green accent.
+   */
+  .dark {
+    color-scheme: dark;
+
+    --surface: 30 30 30;
+    --surface-2: 18 18 18;
+    --surface-3: 48 53 56;
+    --field: 30 30 30;
+    --edge: 46 46 46;
+    --edge-2: 68 68 68;
+    --foreground: 255 255 255;
+    --foreground-2: 228 228 234;
+    --foreground-3: 168 168 176;
+    --foreground-4: 130 130 140;
+    --foreground-5: 98 98 108;
+    --accent: 45 160 67;
+    --accent-strong: 69 182 92;
+    --accent-soft: 16 48 24;
+    --accent-border: 45 160 67;
+    --accent-text: 157 220 170;
+    --success: 52 211 153;
+    --success-soft: 6 46 32;
+    --danger: 248 113 113;
+    --danger-soft: 56 17 17;
+    --warning: 251 191 36;
+    --warning-soft: 53 38 9;
+    --info: 96 165 250;
+    --info-soft: 13 36 56;
+
+    --nav-bg: 11 22 38;
+  }
+
+  .dark body {
+    background-color: #121212;
+  }
+
+  html:not(.dark) body.page-white {
+    background-color: #ffffff;
+  }
+
+  /*
+   * Phone page headers stay pinned while content scrolls underneath. The
+   * dashboard uses its own fixed, full-width bar below.
+   */
+  @media (max-width: 1023px) {
+    .page-head {
+      position: sticky !important;
+      top: 0;
+      z-index: 25;
+      height: auto !important;
+      min-height: 3rem;
+      margin-left: -1rem;
+      margin-right: -1rem;
+      padding: calc(var(--sat) + 0.5rem) 1rem 0.5rem !important;
+      background: #1F1F22;
+      transition: box-shadow 0.2s ease;
+    }
+    html.page-scrolled .page-head {
+      box-shadow: 0 8px 16px -14px rgba(15, 23, 42, 0.35);
+      background: #1F1F22;
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+
+    /* The admin dashboard bar floats across the page and stays fixed while content scrolls. */
+    .dashboard-header {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 35;
+      box-sizing: border-box;
+      /* A little clear of the status bar so the logo and icons don't crowd it */
+      height: calc(var(--sat) + 4.75rem);
+      padding: calc(var(--sat) + 1.25rem) 1rem 0.5rem;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    html.page-scrolled .dashboard-header {
+      background: rgba(18, 18, 18, 0.82);
+      box-shadow: 0 8px 16px -14px rgba(0, 0, 0, 0.6);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+    }
+    .dashboard-header-spacer {
+      height: calc(var(--sat) + 4.75rem);
+    }
+    /* Light theme: the bar is see-through over the pale sky until the page scrolls, so its text goes dark */
+    html:not(.dark):not(.page-scrolled) .dashboard-header h1,
+    html:not(.dark):not(.page-scrolled) .dashboard-header-actions button {
+      color: #0f172a;
+    }
+  }
+
+  /* Tablets use the shared top bar; keep only the dashboard search row there. */
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .dashboard-header-slot {
+      display: none;
+    }
+  }
+
+  /* Phones, every page in the app: soft sky glow behind the header (from the user's reference) */
+  @media (max-width: 1023px) {
+    /* Clear at rest so the glow runs through; frosted once content scrolls under it */
+    .page-head.dash-glow-head,
+    body.app-glow .page-head:not(.dashboard-header) {
+      background: transparent;
+    }
+    html.page-scrolled .page-head.dash-glow-head,
+    html.page-scrolled body.app-glow .page-head:not(.dashboard-header) {
+      background: rgba(232, 241, 255, 0.82);
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+    }
+    .dash-glow {
+      background: linear-gradient(180deg, #d7e7ff 0%, #e8f1ff 45%, rgba(255, 255, 255, 0) 100%);
+    }
+    html.dark.page-scrolled .page-head.dash-glow-head,
+    html.dark.page-scrolled body.app-glow .page-head {
+      background: rgba(22, 32, 47, 0.82);
+    }
+    html:not(.dark) body.dash-glow-body,
+    html:not(.dark) body.app-glow {
+      background: linear-gradient(180deg, #d7e7ff 0, #e8f1ff 180px, #ffffff 380px) no-repeat, #ffffff;
+    }
+    .dark body.dash-glow-body,
+    .dark body.app-glow {
+      background: linear-gradient(180deg, #16202f 0, #121212 360px) no-repeat, #121212;
+    }
+    /* Grey round buttons in a pinned header turn white with a soft blue shadow, like the dashboard's */
+    html:not(.dark) body.app-glow .page-head .bg-surface-3 {
+      background-color: #ffffff;
+      box-shadow: 0 6px 18px -6px rgba(37, 99, 235, 0.28), 0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+    /* The same glow at the bottom, behind the footer bar: fixed to the screen, under the content */
+    body.app-glow::before {
+      content: '';
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 260px;
+      z-index: -1;
+      pointer-events: none;
+      background: linear-gradient(0deg, #d7e7ff 0, #e8f1ff 110px, rgba(255, 255, 255, 0) 100%);
+    }
+    .dark body.app-glow::before {
+      background: linear-gradient(0deg, #16202f 0, rgba(18, 18, 18, 0) 100%);
+    }
+    .dark .dash-glow {
+      background: linear-gradient(180deg, #16202f 0%, rgba(18, 18, 18, 0) 100%);
+    }
+  }
+
+  /* Never scroll sideways: sliding pages must not widen the page and nudge the fixed footer bar */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  /* Phones: every app page sits on pure white, like the login page */
+  @media (max-width: 1023px) {
+    html:not(.dark) body {
+      background-color: #ffffff;
+    }
+  }
+
+  /*
+   * Phones: Safaricom-app proportions. Measured against screen width, its text
+   * and icon tiles are about 15% smaller than ours were, so the rem base drops
+   * to 14px (text and spacing) and every fixed pixel text size scales to match.
+   */
+  @media (max-width: 1023px) {
+    html {
+      font-size: 14px;
+    }
+    body {
+      font-size: 12.5px;
+    }
+    html .text-\[9px\] {
+      font-size: 9px;
+    }
+    html .text-\[10px\] {
+      font-size: 9px;
+    }
+    html .text-\[11px\] {
+      font-size: 10px;
+    }
+    html .text-\[12px\] {
+      font-size: 10.5px;
+    }
+    html .text-\[13px\] {
+      font-size: 11px;
+    }
+    html .text-\[14px\] {
+      font-size: 12px;
+    }
+    html .text-\[15px\] {
+      font-size: 13px;
+    }
+    html .text-\[16px\] {
+      font-size: 13.5px;
+    }
+    html .text-\[17px\] {
+      font-size: 14.5px;
+    }
+    html .text-\[18px\] {
+      font-size: 15.5px;
+    }
+    html .text-\[20px\] {
+      font-size: 17px;
+    }
+    html .text-\[22px\] {
+      font-size: 19px;
+    }
+    html .text-\[24px\] {
+      font-size: 20.5px;
+    }
+    html .text-\[26px\] {
+      font-size: 22px;
+    }
+    html .text-\[28px\] {
+      font-size: 24px;
+    }
+    html .text-\[30px\] {
+      font-size: 25.5px;
+    }
+    html .text-\[32px\] {
+      font-size: 27px;
+    }
+    html .text-\[34px\] {
+      font-size: 29px;
+    }
+    html .text-\[44px\] {
+      font-size: 37px;
+    }
+  }
+
+  h1, h2, h3, h4 {
+    text-rendering: geometricPrecision;
+  }
+
+  /*
+   * Desktop reading size: a sturdier typeface at a normal size. Phones keep
+   * the compact system font. Fixed pixel sizes used across the app are
+   * raised here too, since they would not scale with the root size.
+   */
+  @media (min-width: 1024px) {
+    :root {
+      /* Desktop: Inter, compact dashboard proportions (phones keep Figtree) */
+      --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    html {
+      font-size: 16px;
+    }
+    body {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      letter-spacing: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    html:not(.dark) body {
+      background-color: #f7f8fa;
+    }
+    html .text-\[9px\],
+    html .text-\[10px\] {
+      font-size: 11px;
+    }
+    html .text-\[11px\] {
+      font-size: 12px;
+    }
+    html .text-\[12px\] {
+      font-size: 13px;
+    }
+  }
+
+  /* Keep text crisp on mobile — no blurry scaling artifacts */
+  @media (max-width: 640px) {
+    body {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+  }
+
+  * {
+    outline: 0;
+  }
+
+  :focus-visible {
+    outline: 2px solid #00B140;
+    outline-offset: 2px;
+  }
+
+  /* Form fields: no green outline/border on click or focus */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    background-color: rgb(var(--field));
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus-visible,
+  textarea:focus,
+  textarea:focus-visible,
+  select:focus,
+  select:focus-visible {
+    outline: none;
+    border-color: rgb(var(--edge-2));
+    box-shadow: none;
+    background-color: rgb(var(--field));
+  }
+
+  /* Remove browser autofill blue/yellow flash */
+  input:-webkit-autofill,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px rgb(var(--field)) inset !important;
+    -webkit-text-fill-color: rgb(var(--foreground)) !important;
+    caret-color: rgb(var(--foreground));
+    transition: background-color 9999s ease-out 0s;
+  }
+
+  /* Login inputs stay legible on their dark surface, including autofill. */
+  .login-dark-fields input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    caret-color: #fff;
+    background-color: #1e1e1e !important;
+  }
+
+  /* Phone login: fields clear like the M-PIN boxes, the dark frosted panel shows through */
+  .login-dark-fields.login-clear-fields input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+    background-color: transparent !important;
+  }
+
+  .login-dark-fields input::placeholder {
+    color: rgb(255 255 255 / 60%) !important;
+    opacity: 1;
+  }
+
+  .login-dark-fields input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px #1e1e1e inset !important;
+    -webkit-text-fill-color: #fff !important;
+    caret-color: #fff;
+  }
+}
+
+@layer utilities {
+  /*
+   * Phone lists: rows rise in one after another, like a native list loading.
+   * Delays stop growing after 12 rows so long lists don't feel slow.
+   */
+  @keyframes list-rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @media (max-width: 1023px) and (prefers-reduced-motion: no-preference) {
+    .stagger-list > * {
+      animation: list-rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+      animation-delay: 360ms;
+    }
+    .stagger-list > *:nth-child(1) { animation-delay: 30ms; }
+    .stagger-list > *:nth-child(2) { animation-delay: 60ms; }
+    .stagger-list > *:nth-child(3) { animation-delay: 90ms; }
+    .stagger-list > *:nth-child(4) { animation-delay: 120ms; }
+    .stagger-list > *:nth-child(5) { animation-delay: 150ms; }
+    .stagger-list > *:nth-child(6) { animation-delay: 180ms; }
+    .stagger-list > *:nth-child(7) { animation-delay: 210ms; }
+    .stagger-list > *:nth-child(8) { animation-delay: 240ms; }
+    .stagger-list > *:nth-child(9) { animation-delay: 270ms; }
+    .stagger-list > *:nth-child(10) { animation-delay: 300ms; }
+    .stagger-list > *:nth-child(11) { animation-delay: 330ms; }
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  @keyframes marquee {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-33.333%);
+    }
+  }
+
+  .animate-marquee {
+    display: flex;
+    width: max-content;
+    animation: marquee 50s linear infinite;
+  }
+
+  .animate-marquee:hover {
+    animation-play-state: paused;
+  }
+}
