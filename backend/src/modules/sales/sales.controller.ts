@@ -31,7 +31,9 @@ export class SalesController {
   constructor(private readonly salesService: SalesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List sales' })
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.ACCOUNTANT)
+  @ApiOperation({ summary: 'List sales (admins only; employees can only record sales)' })
   @ApiQuery({ name: 'from', required: false })
   @ApiQuery({ name: 'to', required: false })
   @ApiQuery({ name: 'customerId', required: false })
@@ -81,7 +83,9 @@ export class SalesController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a sale with items and payments' })
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.ACCOUNTANT)
+  @ApiOperation({ summary: 'Get a sale with items and payments (admins only)' })
   get(
     @CurrentBusiness() business: { id: string },
     @Param('id', ParseUUIDPipe) id: string,

@@ -50,7 +50,9 @@ export class ExpensesController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'List expenses (employees see only their own)' })
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.ACCOUNTANT)
+  @ApiOperation({ summary: 'List expenses (admins only; employees can only submit them)' })
   async list(
     @CurrentBusiness() business: BusinessCtx,
     @CurrentUser() user: AuthUser,
@@ -63,7 +65,9 @@ export class ExpensesController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get an expense' })
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.ACCOUNTANT)
+  @ApiOperation({ summary: 'Get an expense (admins only)' })
   get(
     @CurrentBusiness() business: BusinessCtx,
     @CurrentUser() user: AuthUser,

@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { ChevronRight, PhoneCall, ShieldCheck, ShoppingCart, Wallet } from 'lucide-react';
-import { callsApi, dashboardApi, expensesApi } from '@/api/endpoints';
+import { callsApi, dashboardApi } from '@/api/endpoints';
 import { apiErrorMessage } from '@/api/client';
 import { Alert } from '@/components/ui/alert';
 import { WorkspaceLoader } from '@/components/ui/workspace-loader';
@@ -19,8 +19,7 @@ import {
   DuoServices,
   DuoSubscribers,
 } from '@/components/brand/duo-icons';
-import { Badge, statusLabel, statusVariant } from '@/components/ui/badge';
-import { cn, formatDate, formatKES } from '@/lib/utils';
+import { cn, formatKES } from '@/lib/utils';
 import { useActiveBusiness } from '@/stores/business';
 import { useAuthStore } from '@/stores/auth';
 import { DashboardHeader } from './components/dashboard-header';
@@ -38,7 +37,6 @@ const EMPLOYEE_ACTIONS: QuickAction[] = [
   { to: '/customers', label: 'Customers', icon: DuoCustomers },
   { to: '/products', label: 'Packages', icon: DuoProducts },
   { to: '/services', label: 'Services', icon: DuoServices },
-  { to: '/sales', label: 'Sales', icon: DuoSales },
 ];
 
 const REASON: Record<string, string> = {
@@ -61,11 +59,6 @@ export function EmployeeDashboard() {
 
   const { data, error, isLoading } = useQuery({ queryKey: ['dashboard'], queryFn: dashboardApi.get });
   const calls = useQuery({ queryKey: ['calls', 'due'], queryFn: callsApi.due });
-  // Employees see their own submissions
-  const myExpenses = useQuery({
-    queryKey: ['expenses', { page: 1, limit: 5, mine: true }],
-    queryFn: () => expensesApi.list({ page: 1, limit: 5 }),
-  });
 
   useEffect(() => {
     document.body.classList.add('page-white', 'dash-glow-body');
@@ -81,16 +74,15 @@ export function EmployeeDashboard() {
     );
   }
 
-  const pending = (myExpenses.data?.items ?? []).filter((e) => e.status === 'PENDING').length;
   const callList = calls.data ?? [];
   const cards = [
     {
       key: 'sales',
       theme: CARD_THEMES.sales,
-      label: 'Sales today',
-      value: String(data.today.salesCount),
-      note: data.today.salesCount === 1 ? 'sale' : 'sales',
-      footerRight: data.packagesToday ? `${data.packagesToday.count} packages` : undefined,
+      label: 'New sale',
+      value: 'Record',
+      note: 'a sale',
+      footerRight: undefined,
       icon: ShoppingCart,
       action: { label: 'Record sale', onClick: () => navigate('/sales/new') },
     },
@@ -107,10 +99,10 @@ export function EmployeeDashboard() {
     {
       key: 'expenses',
       theme: CARD_THEMES.expenses,
-      label: 'My expenses',
-      value: String(pending),
-      note: 'pending',
-      footerRight: myExpenses.data ? `${myExpenses.data.total} submitted` : undefined,
+      label: 'Expense',
+      value: 'Submit',
+      note: 'for approval',
+      footerRight: undefined,
       icon: Wallet,
       action: { label: 'Submit', onClick: () => navigate('/expenses?new=1') },
     },
@@ -197,32 +189,6 @@ export function EmployeeDashboard() {
                     )}
                     <ChevronRight className="h-4 w-4 shrink-0 text-foreground-5" aria-hidden />
                   </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </DashSection>
-      </motion.div>
-
-      {/* The employee's own expense submissions */}
-      <motion.div {...rise(5)}>
-        <DashSection title="My expenses" subtitle="What you submitted and its status" action={{ label: 'See all', to: '/expenses' }}>
-          {(myExpenses.data?.items ?? []).length === 0 ? (
-            <p className="px-1 text-[13px] text-foreground-4">You haven't submitted any expenses.</p>
-          ) : (
-            <ul className="space-y-1">
-              {myExpenses.data!.items.map((e) => (
-                <li key={e.id} className="flex items-center gap-3 px-1 py-2">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F7E3E6] text-[#9B2B3D] [.dark_&]:bg-[#9B2B3D]/20 [.dark_&]:text-[#F2B8C0]">
-                    <Wallet className="h-5 w-5" aria-hidden />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px] font-medium text-foreground">{e.description}</span>
-                    <span className="block truncate text-[12px] text-foreground-4">
-                      {formatDate(e.expense_date)} · {formatKES(e.amount)}
-                    </span>
-                  </span>
-                  <Badge variant={statusVariant(e.status)}>{statusLabel(e.status)}</Badge>
                 </li>
               ))}
             </ul>

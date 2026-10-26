@@ -19,6 +19,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { formatKES, formatDate, formatDateTime } from '@/lib/utils';
 import { invoiceNo } from '@/features/isp/document-actions';
 import { useState } from 'react';
+import { useRole } from '@/hooks/use-role';
 import { SubscriberForm } from '@/features/isp/subscriber-form';
 import { ClientAppAccess } from './client-app-access';
 import { UnpaidInvoices } from './unpaid-invoices';
@@ -37,9 +38,12 @@ export function CustomerDetailPage() {
     queryFn: () => customersApi.get(id),
   });
 
+  // Sales history is for admins; employees only record sales
+  const { isEmployee } = useRole();
   const salesQuery = useQuery({
     queryKey: ['customer-sales', id],
     queryFn: () => salesApi.list({ customerId: id, limit: 20 }),
+    enabled: !isEmployee,
   });
 
   if (customerQuery.isLoading) return <PageLoader inline message="Loading" />;
@@ -94,7 +98,7 @@ export function CustomerDetailPage() {
       </div>
 
       {/* Unpaid invoices, each with a prompt to pay */}
-      <UnpaidInvoices customer={customer} />
+      {!isEmployee && <UnpaidInvoices customer={customer} />}
 
       {/* Actions in the Sales page's outline pill style */}
       <div className="grid grid-cols-2 gap-2.5">
@@ -134,7 +138,8 @@ export function CustomerDetailPage() {
       {/* The client's own app login (admins only) */}
       <ClientAppAccess customerId={customer.id} name={customer.name} email={customer.email} username={customer.username} />
 
-      {/* Purchase history — flat, professional */}
+      {/* Purchase history — flat, professional (admins only) */}
+      {!isEmployee && (
       <section className="space-y-2">
         <div className="flex items-center justify-between px-1">
           <h2 className="text-[13px] font-medium tracking-tight text-foreground">Purchase history</h2>
@@ -174,6 +179,7 @@ export function CustomerDetailPage() {
           </ul>
         )}
       </section>
+      )}
 
       {/* Calls with this client */}
       <section className="space-y-2">

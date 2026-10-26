@@ -25,6 +25,7 @@ import { Badge, statusVariant, statusLabel } from '@/components/ui/badge';
 import { cn, formatKES, uuid } from '@/lib/utils';
 import { DEFAULT_PAYMENT_METHODS } from '@/lib/constants';
 import { useActiveBusiness } from '@/stores/business';
+import { useRole } from '@/hooks/use-role';
 import type { Customer } from '@/api/types';
 import { notifySuccess } from '@/components/ui/popup-host';
 
@@ -77,6 +78,7 @@ export function RecordSalePage() {
   // Sales can be dated today or any earlier day, in the business's timezone
   const today = useBusinessToday();
   const navigate = useNavigate();
+  const { isEmployee } = useRole();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const presetCustomer = searchParams.get('customer');
@@ -305,7 +307,7 @@ export function RecordSalePage() {
       await queryClient.invalidateQueries({ queryKey: ['sales'] });
       await queryClient.invalidateQueries({ queryKey: ['customers'] });
       await queryClient.invalidateQueries({ queryKey: ['products'] });
-      notifySuccess('Sale recorded', `${formatKES(sale.total)} added to revenue.`);
+      notifySuccess('Sale recorded', isEmployee ? undefined : `${formatKES(sale.total)} added to revenue.`);
     },
     onError: (err) => setFormError('root', { message: apiErrorMessage(err) }),
   });
@@ -526,16 +528,19 @@ export function RecordSalePage() {
         <Badge variant={statusVariant(successSale.payment_status)}>
           {statusLabel(successSale.payment_status)}
         </Badge>
-        <div className="mt-2 grid w-full grid-cols-2 gap-3 pt-2">
+        <div className={cn('mt-2 grid w-full gap-3 pt-2', isEmployee ? 'grid-cols-1' : 'grid-cols-2')}>
           <Button variant="outline" className="rounded-full" onClick={resetSale}>
             Record another
           </Button>
-          <Button
-            className="rounded-full bg-accent text-white hover:bg-accent-strong"
-            onClick={() => window.location.assign(`/sales/${successSale.id}`)}
-          >
-            {invoicing ? 'Open invoice' : 'View sale'}
-          </Button>
+          {/* Employees record sales but never open them afterwards */}
+          {!isEmployee && (
+            <Button
+              className="rounded-full bg-accent text-white hover:bg-accent-strong"
+              onClick={() => window.location.assign(`/sales/${successSale.id}`)}
+            >
+              {invoicing ? 'Open invoice' : 'View sale'}
+            </Button>
+          )}
         </div>
       </div>
     );

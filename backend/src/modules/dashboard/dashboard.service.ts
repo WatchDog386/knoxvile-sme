@@ -107,6 +107,28 @@ export class DashboardService {
     };
   }
 
+  /**
+   * The dashboard with every sales, profit, expense and debt figure removed, for employees.
+   * Done on the server so the numbers never reach their phone.
+   */
+  withoutMoney(d: Awaited<ReturnType<DashboardService['getDashboard']>>) {
+    return {
+      ...d,
+      today: { sales: 0, cashReceived: 0, expenses: 0, grossProfit: 0, netProfit: 0, salesCount: 0, paymentCount: 0 },
+      weekRevenue: 0,
+      monthRevenue: 0,
+      outstandingDebts: 0,
+      recentCustomers: [],
+      recentTransactions: [],
+      recentMoney: [],
+      topProducts: [],
+      salesSeries: [],
+      budgetAlerts: [],
+      pendingApprovals: 0,
+      packagesToday: { count: 0, new: 0, renewals: 0, revenue: 0 },
+    };
+  }
+
   /** WiFi packages sold in a period, split into new subscriptions and renewals. */
   private async packagesSold(businessId: string, from: Date, to: Date) {
     const rows = await this.itemRepo

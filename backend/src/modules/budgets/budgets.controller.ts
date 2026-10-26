@@ -37,13 +37,17 @@ export class BudgetsController {
   constructor(private readonly budgetsService: BudgetsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List category budgets' })
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.ACCOUNTANT)
+  @ApiOperation({ summary: 'List category budgets (admins only)' })
   list(@CurrentBusiness() business: { id: string }) {
     return this.budgetsService.list(business.id);
   }
 
   @Get('status')
-  @ApiOperation({ summary: 'Spending against each budget for a month' })
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.ACCOUNTANT)
+  @ApiOperation({ summary: 'Spending against each budget for a month (admins only)' })
   status(
     @CurrentBusiness() business: { id: string; timezone: string },
     @Query() query: BudgetStatusQueryDto,

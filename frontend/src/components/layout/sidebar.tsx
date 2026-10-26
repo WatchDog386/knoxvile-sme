@@ -45,7 +45,7 @@ const ROLE_LABEL: Record<string, string> = {
  */
 export function Sidebar() {
   const { canInstall, install } = useInstallPrompt();
-  const { canApprove, role } = useRole();
+  const { canApprove, role, isEmployee } = useRole();
   const business = useActiveBusiness();
   const businesses = useBusinessStore((s) => s.businesses);
   const [switchOpen, setSwitchOpen] = useState(false);
@@ -56,7 +56,16 @@ export function Sidebar() {
 
   const sections: Array<{ label?: string; items: NavItem[] }> = [
     { items: [{ to: '/dashboard', label: 'Home', icon: Home }] },
-    {
+    // Employees record sales and submit expenses but never see the figures
+    isEmployee
+      ? {
+          label: 'Work',
+          items: [
+            { to: '/sales/new', label: 'Record sale', icon: ShoppingCart },
+            { to: '/expenses', label: 'Submit expense', icon: Wallet, end: true },
+          ],
+        }
+      : {
       label: 'Money',
       items: [
         { to: '/sales', label: 'Sales', icon: ShoppingCart },
@@ -81,7 +90,7 @@ export function Sidebar() {
         { to: '/services', label: 'Services', icon: Scissors },
       ],
     },
-    { label: 'Insights', items: [{ to: '/reports', label: 'Reports', icon: BarChart3 }] },
+    ...(isEmployee ? [] : [{ label: 'Insights', items: [{ to: '/reports', label: 'Reports', icon: BarChart3 }] }]),
   ];
 
   const footer: NavItem[] = [

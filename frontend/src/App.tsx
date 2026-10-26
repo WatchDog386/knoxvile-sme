@@ -10,6 +10,7 @@ import { PopupHost } from '@/components/ui/popup-host';
 import { InstallAppPrompt } from '@/components/layout/install-app-prompt';
 import { SHOW_MOBILE_HOME } from '@/lib/flags';
 import { SignInReveal } from '@/components/ui/workspace-loader';
+import { useRole } from '@/hooks/use-role';
 
 const LoginPage = lazy(() => import('@/features/auth/login-page').then((m) => ({ default: m.LoginPage })));
 const ForgotPasswordPage = lazy(() => import('@/features/auth/forgot-password-page').then((m) => ({ default: m.ForgotPasswordPage })));
@@ -45,6 +46,7 @@ const ClientPaymentsPage = lazy(() => import('@/features/client/client-pages').t
 const ClientAmountPage = lazy(() => import('@/features/client/client-pay-flow').then((m) => ({ default: m.ClientAmountPage })));
 const ClientMethodPage = lazy(() => import('@/features/client/client-pay-flow').then((m) => ({ default: m.ClientMethodPage })));
 const ClientNotificationsPage = lazy(() => import('@/features/client/client-notifications').then((m) => ({ default: m.ClientNotificationsPage })));
+const EmployeeExpensePage = lazy(() => import('@/features/expenses/employee-expense-page').then((m) => ({ default: m.EmployeeExpensePage })));
 const NotFoundPage = lazy(() => import('@/features/misc/not-found-page').then((m) => ({ default: m.NotFoundPage })));
 
 /** Signed-in users go straight to the dashboard; everyone else to login. */
@@ -54,6 +56,21 @@ function HomeRoute() {
   if (token) return <Navigate to="/dashboard" replace />;
   if (SHOW_MOBILE_HOME && !isDesktop) return <MobileHomePage />;
   return <Navigate to="/login" replace />;
+}
+
+/**
+ * Pages with sales, profit or expense figures are for admins only: an employee who types the
+ * address or follows an old link lands back on their dashboard. The API refuses them too.
+ */
+function AdminOnly({ children }: { children: React.ReactNode }) {
+  const { isEmployee } = useRole();
+  return isEmployee ? <Navigate to="/dashboard" replace /> : <>{children}</>;
+}
+
+/** Admins see every expense; employees only get the form to submit one. */
+function ExpensesRoute() {
+  const { isEmployee } = useRole();
+  return isEmployee ? <EmployeeExpensePage /> : <ExpensesPage />;
 }
 
 /** Re-applies the theme on every route change; home/auth/success stay light. */
@@ -109,15 +126,15 @@ export default function App() {
             <Route path="/products/new" element={<Navigate to="/products?new=1" replace />} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/services/new" element={<Navigate to="/services?new=1" replace />} />
-            <Route path="/sales" element={<SalesPage />} />
+            <Route path="/sales" element={<AdminOnly><SalesPage /></AdminOnly>} />
             <Route path="/sales/new" element={<RecordSalePage />} />
-            <Route path="/sales/:id" element={<SaleDetailPage />} />
-            <Route path="/expenses" element={<ExpensesPage />} />
-            <Route path="/expenses/recurring" element={<RecurringExpensesPage />} />
-    <Route path="/expenses/:id" element={<ExpenseDetailPage />} />
-            <Route path="/budgets" element={<BudgetsPage />} />
+            <Route path="/sales/:id" element={<AdminOnly><SaleDetailPage /></AdminOnly>} />
+            <Route path="/expenses" element={<ExpensesRoute />} />
+            <Route path="/expenses/recurring" element={<AdminOnly><RecurringExpensesPage /></AdminOnly>} />
+            <Route path="/expenses/:id" element={<AdminOnly><ExpenseDetailPage /></AdminOnly>} />
+            <Route path="/budgets" element={<AdminOnly><BudgetsPage /></AdminOnly>} />
             <Route path="/account" element={<AccountPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/reports" element={<AdminOnly><ReportsPage /></AdminOnly>} />
             <Route path="/staff" element={<StaffPage />} />
             <Route path="/subscribers" element={<SubscribersPage />} />
             <Route path="/calls" element={<CallsPage />} />
