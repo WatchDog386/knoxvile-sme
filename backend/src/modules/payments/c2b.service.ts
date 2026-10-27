@@ -47,10 +47,11 @@ function titleCase(name: string): string {
  * - Account number of a subscriber we have (FBI0001…): applied to their
  *   unpaid invoices first (oldest first), then a package renewal if what is
  *   left covers it, and anything over is kept as credit on their account.
- * - FBI account number we don't have yet: the subscriber is created from the
- *   payment (name and phone) and the money recorded as a sale for them.
- * - No account number (or one that isn't a subscriber's): the payer is found
- *   by phone or added as a customer, and the money recorded as their sale.
+ * - An account number we don't have yet (any format: the billing system sets
+ *   the numbering): the subscriber is created from the payment (name and phone)
+ *   and the money recorded as a sale for them.
+ * - No account number (or a phone number typed as one): the payer is found by
+ *   phone or added as a customer, and the money recorded as their sale.
  * Only a payment with no name and no usable phone stays unlinked.
  */
 @Injectable()
@@ -85,6 +86,19 @@ export class C2bService {
     if (a.length !== b.length || !timingSafeEqual(a, b)) {
       throw new UnauthorizedException({ code: 'BAD_WEBHOOK_SECRET', message: 'Wrong webhook secret.' });
     }
+  }
+
+  /**
+   * Is what was typed in the account box a subscriber account number? Any format is accepted (the
+   * billing system decides the numbering, not the SME's prefix): letters, digits and dashes with at
+   * least one digit. A phone number typed as the account is not an account.
+   */
+  static isAccountNumber(ref: string): boolean {
+    const v = ref.trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9 /-]{0,39}$/.test(v) || !/\d/.test(v)) return false;
+    const digits = v.replace(/\D/g, '');
+    const looksLikePhone = digits === v.replace(/[\s-]/g, '') && /^(?:254|0)?[17]\d{8}$/.test(digits);
+    return !looksLikePhone;
   }
 
   /** FBI-011, "fbi 011" and FBI011 are all written FBI011. */
@@ -178,7 +192,7 @@ export class C2bService {
     if (!customer) {
       const phone = C2bService.localPhone(payload.MSISDN);
       const account = ref ? C2bService.normaliseAccount(ref) : '';
-      if (new RegExp(`^${business.account_prefix || 'FBI'}\\d+$`).test(account)) {
+      if (C2bService.isAccountNumber(account)) {
         customer = await this.createSubscriber(business.id, account, name, phone, transId);
         outcome = 'NEW_ACCOUNT';
       } else if (name || phone) {
@@ -372,7 +386,7 @@ export class C2bService {
     return full ? `0${full.slice(3)}` : null;
   }
 
-  /** Paid to an FBI account number we don't have yet: add the subscriber. */
+  /** Paid to an account number we don't have yet: add the subscriber. */
   private async createSubscriber(businessId: string, account: string, name: string, phone: string | null, transId: string) {
     const usernameTaken = await this.customerRepo
       .createQueryBuilder('c')
