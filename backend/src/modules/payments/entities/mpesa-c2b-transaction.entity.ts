@@ -29,7 +29,8 @@ export class MpesaC2bTransaction extends BaseEntity {
   @Column({ type: 'varchar', length: 20, nullable: true })
   short_code: string | null;
 
-  @Column({ type: 'varchar', length: 30, nullable: true })
+  /** The payer's number, or the hashed value Safaricom sends instead (64 characters). */
+  @Column({ type: 'varchar', length: 128, nullable: true })
   msisdn: string | null;
 
   @Column({ type: 'varchar', length: 150, nullable: true })
@@ -42,11 +43,12 @@ export class MpesaC2bTransaction extends BaseEntity {
   /**
    * APPLIED: on an existing subscriber's account. NEW_ACCOUNT: subscriber
    * created from this payment. CUSTOMER: paid without an account number, on a
-   * customer record. UNMATCHED: no name or phone, sale not linked to anyone.
+   * customer record. UNMATCHED: no phone (or a masked one) and no account: the sale carries the payer's
+   * name but no customer record. HOTSPOT: a hotspot purchase (router + device), recorded as a sale.
    * PROMPT: answered a prompt sent from the app, which recorded the sale.
    */
   @Column({ type: 'varchar', length: 12, default: 'PROCESSING' })
-  status: 'PROCESSING' | 'APPLIED' | 'NEW_ACCOUNT' | 'CUSTOMER' | 'UNMATCHED' | 'PROMPT';
+  status: 'PROCESSING' | 'APPLIED' | 'NEW_ACCOUNT' | 'CUSTOMER' | 'UNMATCHED' | 'HOTSPOT' | 'PROMPT';
 
   /** Sales the money went to (invoices settled, package renewed, credit). */
   @Column({ type: 'simple-json', nullable: true })

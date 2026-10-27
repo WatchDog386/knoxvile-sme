@@ -36,6 +36,29 @@ export interface C2bPayload {
 
 const ACCEPTED = { ResultCode: 0, ResultDesc: 'Accepted' };
 
+/** Other names billing systems use for the same fields (matched ignoring case, "_" and "-"). */
+const ALIASES: Record<keyof C2bPayload, string[]> = {
+  TransactionType: ['transactiontype', 'type'],
+  TransID: ['transid', 'transactionid', 'mpesacode', 'mpesareceiptnumber', 'receipt', 'receiptnumber', 'code'],
+  TransTime: ['transtime', 'transactiontime', 'transactiondate', 'time'],
+  TransAmount: ['transamount', 'amount'],
+  BusinessShortCode: ['businessshortcode', 'shortcode', 'paybill'],
+  BillRefNumber: ['billrefnumber', 'account', 'accountnumber', 'accountreference', 'billref', 'reference'],
+  InvoiceNumber: ['invoicenumber', 'invoice'],
+  OrgAccountBalance: ['orgaccountbalance', 'balance'],
+  ThirdPartyTransID: ['thirdpartytransid'],
+  MSISDN: ['msisdn', 'phone', 'phonenumber', 'mobile'],
+  FirstName: ['firstname', 'first'],
+  MiddleName: ['middlename', 'middle'],
+  LastName: ['lastname', 'last', 'surname'],
+};
+
+/** A value cut to fit its column (a sender's long value must never make a payment fail), or null. */
+function clip(value: string | number | undefined | null, max: number): string | null {
+  const v = value === undefined || value === null ? '' : String(value).trim();
+  return v ? v.slice(0, max) : null;
+}
+
 /** "JOHN  KAMAU" → "John Kamau". */
 function titleCase(name: string): string {
   return name.toLowerCase().replace(/\s+/g, ' ').trim().replace(/(^|[\s'-])\p{L}/gu, (m) => m.toUpperCase());
@@ -89,6 +112,45 @@ export class C2bService {
   }
 
   /**
+   * The payment in Safaricom's field names, whatever names the sender used (TransID or transaction_id,
+   * TransAmount or amount, BillRefNumber or account…). A body wrapped in { data: {...} } is unwrapped.
+   */
+  static normalisePayload(body: unknown): C2bPayload {
+    const src = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
+    const inner = src.data && typeof src.data === 'object' && !Array.isArray(src.data) ? (src.data as Record<string, unknown>) : null;
+    const flat: Record<string, unknown> = { ...(inner ?? {}), ...src };
+    const byKey = new Map<string, unknown>();
+    for (const [k, v] of Object.entries(flat)) {
+      if (v === null || v === undefined || typeof v === 'object') continue;
+      const key = k.toLowerCase().replace(/[_\-\s]/g, '');
+      if (!byKey.has(key)) byKey.set(key, v);
+    }
+    const out: C2bPayload = {};
+    for (const [field, names] of Object.entries(ALIASES) as [keyof C2bPayload, string[]][]) {
+      for (const n of names) {
+        const v = byKey.get(n);
+        if (v !== undefined && String(v).trim() !== '') {
+          (out as Record<string, string>)[field] = String(v).trim();
+          break;
+        }
+      }
+    }
+    return out;
+  }
+
+  /**
+   * A hotspot purchase: the account is the router and the buyer's device, e.g. "ROUTER1,82:F8:E8:0B:BB:F2".
+   * These are one-off sales, not subscribers.
+   */
+  static hotspotRef(ref: string): { router: string; mac: string | null } | null {
+    const v = ref.trim();
+    const mac = /([0-9A-F]{2}[:-]){5}[0-9A-F]{2}/i.exec(v)?.[0]?.toUpperCase() ?? null;
+    const router = /^(ROUTER\s*\w*|HOTSPOT\s*\w*)\s*[,;|]/i.exec(v)?.[1]?.replace(/\s+/g, '').toUpperCase() ?? null;
+    if (!mac && !router) return null;
+    return { router: router ?? 'HOTSPOT', mac };
+  }
+
+  /**
    * Is what was typed in the account box a subscriber account number? Any format is accepted (the
    * billing system decides the numbering, not the SME's prefix): letters, digits and dashes with at
    * least one digit. A phone number typed as the account is not an account.
@@ -137,11 +199,14 @@ export class C2bService {
     );
   }
 
-  async receive(payload: C2bPayload, opts: { promptUnclaimed?: boolean } = {}) {
+  async receive(body: C2bPayload | Record<string, unknown>, opts: { promptUnclaimed?: boolean } = {}) {
+    const payload = C2bService.normalisePayload(body);
     const transId = String(payload.TransID ?? '').trim().toUpperCase();
     const amount = roundKES(Number(payload.TransAmount));
     if (!transId || !Number.isFinite(amount) || amount <= 0) {
-      return { ResultCode: 1, ResultDesc: 'Rejected: TransID and a positive TransAmount are required' };
+      // Say what arrived, so a sender using other field names can be fixed quickly
+      this.logger.warn(`M-Pesa webhook rejected: no transaction code or amount. Fields received: ${Object.keys((body ?? {}) as object).join(', ') || '(none)'}`);
+      return { ResultCode: 1, ResultDesc: 'Rejected: a transaction code (TransID) and a positive amount (TransAmount) are required' };
     }
     // Sent before: already applied, just confirm
     if (await this.txRepo.findOne({ where: { trans_id: transId } })) return ACCEPTED;
@@ -171,16 +236,16 @@ export class C2bService {
       await this.txRepo.save(
         this.txRepo.create({
           businessId: business.id,
-          trans_id: transId,
+          trans_id: transId.slice(0, 40),
           trans_time: this.transTime(payload.TransTime, business.timezone),
           amount,
-          bill_ref: ref || null,
-          short_code: payload.BusinessShortCode ? String(payload.BusinessShortCode) : null,
-          msisdn: payload.MSISDN ? String(payload.MSISDN) : null,
-          payer_name: name || null,
+          bill_ref: clip(ref, 60),
+          short_code: clip(payload.BusinessShortCode, 20),
+          msisdn: clip(payload.MSISDN, 128),
+          payer_name: clip(name, 150),
           customerId: customer?.id ?? null,
           status: 'PROMPT',
-          raw: payload as Record<string, unknown>,
+          raw: body as Record<string, unknown>,
         }),
       );
       this.logger.log(`M-Pesa ${transId}: KES ${amount} for "${ref}" answers a prompt sent from the app`);
@@ -188,17 +253,22 @@ export class C2bService {
     }
 
     let outcome: MpesaC2bTransaction['status'] = 'APPLIED';
+    const hotspot = customer ? null : C2bService.hotspotRef(ref);
     if (customer) await this.fillPhone(customer, C2bService.localPhone(payload.MSISDN));
-    if (!customer) {
+    if (hotspot) {
+      // Hotspot buyers are one-off sales: no customer record per device
+      outcome = 'HOTSPOT';
+    } else if (!customer) {
       const phone = C2bService.localPhone(payload.MSISDN);
       const account = ref ? C2bService.normaliseAccount(ref) : '';
       if (C2bService.isAccountNumber(account)) {
         customer = await this.createSubscriber(business.id, account, name, phone, transId);
         outcome = 'NEW_ACCOUNT';
-      } else if (name || phone) {
+      } else if (phone) {
         customer = await this.findOrCreateCustomer(business.id, name, phone, ref, transId);
         outcome = 'CUSTOMER';
       } else {
+        // A name alone (the phone is masked) can't tell people apart: record the sale with the name on it
         outcome = 'UNMATCHED';
       }
     }
@@ -206,16 +276,16 @@ export class C2bService {
     const tx = await this.txRepo.save(
       this.txRepo.create({
         businessId: business.id,
-        trans_id: transId,
+        trans_id: transId.slice(0, 40),
         trans_time: this.transTime(payload.TransTime, business.timezone),
         amount,
-        bill_ref: ref || null,
-        short_code: payload.BusinessShortCode ? String(payload.BusinessShortCode) : null,
-        msisdn: payload.MSISDN ? String(payload.MSISDN) : null,
-        payer_name: name || null,
+        bill_ref: clip(ref, 60),
+        short_code: clip(payload.BusinessShortCode, 20),
+        msisdn: clip(payload.MSISDN, 128),
+        payer_name: clip(name, 150),
         customerId: customer?.id ?? null,
         status: 'PROCESSING',
-        raw: payload as Record<string, unknown>,
+        raw: body as Record<string, unknown>,
       }),
     );
 
@@ -230,8 +300,10 @@ export class C2bService {
       tx.status = outcome;
       tx.sale_ids = saleIds;
       await this.txRepo.save(tx);
-      const how = { APPLIED: '', NEW_ACCOUNT: ' (new subscriber)', CUSTOMER: ' (customer, no account)', UNMATCHED: '', PROCESSING: '', PROMPT: '' }[outcome];
-      this.logger.log(`M-Pesa ${transId}: KES ${amount} for "${ref}" ${customer ? `→ ${customer.name}${how}` : '(no name or phone to record)'}`);
+      const how = { APPLIED: '', NEW_ACCOUNT: ' (new subscriber)', CUSTOMER: ' (customer, no account)', UNMATCHED: '', HOTSPOT: '', PROCESSING: '', PROMPT: '' }[outcome];
+      this.logger.log(
+        `M-Pesa ${transId}: KES ${amount} for "${ref}" ${customer ? `→ ${customer.name}${how}` : outcome === 'HOTSPOT' ? `→ hotspot sale (${name || 'buyer'})` : `→ sale for ${name || 'unknown payer'} (no customer record)`}`,
+      );
       return ACCEPTED;
     } catch (err) {
       // Not applied: drop the record so a resend is processed again (each step is idempotent)
@@ -439,7 +511,9 @@ export class C2bService {
     customer: Customer | null,
     actor: { userId: string; role: string },
   ): Promise<string[]> {
-    const from = `${name || 'unknown'}${msisdn ? ` (${msisdn})` : ''}`;
+    const phone = C2bService.localPhone(msisdn);
+    const from = `${name || 'unknown'}${phone ? ` (${phone})` : ''}`;
+    const hotspot = customer ? null : C2bService.hotspotRef(ref);
     const sale = await this.sales.create(
       business.id,
       {
@@ -452,7 +526,9 @@ export class C2bService {
         reference: transId,
         notes: customer
           ? `M-Pesa paybill ${transId} from ${from}, account "${ref || 'blank'}"`
-          : `M-Pesa paybill ${transId} from ${from}: account "${ref || 'blank'}", no name or phone to record`,
+          : hotspot
+            ? `Hotspot ${hotspot.router}${hotspot.mac ? ` · device ${hotspot.mac}` : ''} · M-Pesa ${transId} from ${from}`
+            : `M-Pesa paybill ${transId} from ${from}: account "${ref || 'blank'}"`,
         // Same key as before for payer-less payments, so a resend never doubles up
         idempotencyKey: customer ? `mpesa-${transId}-payment` : `mpesa-${transId}-unmatched`,
       },

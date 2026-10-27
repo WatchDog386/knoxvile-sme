@@ -1,5 +1,5 @@
 import { SkipThrottle } from '@nestjs/throttler';
-import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Logger, Post, Query, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -8,7 +8,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentBusiness } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../common/types/auth-user.interface';
-import { C2bService, type C2bPayload } from './c2b.service';
+import { C2bService } from './c2b.service';
 
 /**
  * Paybill payments forwarded by the company's existing M-Pesa integration.
@@ -18,6 +18,7 @@ import { C2bService, type C2bPayload } from './c2b.service';
 @Controller('payments/mpesa')
 @SkipThrottle()
 export class MpesaC2bWebhookController {
+  private readonly logger = new Logger('MpesaWebhook');
   constructor(private readonly c2b: C2bService) {}
 
   @Post('c2b')
@@ -27,12 +28,20 @@ export class MpesaC2bWebhookController {
   async receive(
     @Headers('x-webhook-secret') header: string | undefined,
     @Query('secret') query: string | undefined,
-    @Body() body: C2bPayload,
+    @Body() body: Record<string, unknown>,
     @Res() res: Response,
   ) {
-    this.c2b.assertSecret(header ?? query);
+    // One line per call, so it is always visible whether the billing system is reaching us
+    try {
+      this.c2b.assertSecret(header ?? query);
+    } catch (err) {
+      this.logger.warn(`M-Pesa webhook call refused (${err instanceof Error ? err.message : 'bad secret'}). Secret sent: ${header ? 'in header' : query ? 'in URL' : 'none'}`);
+      throw err;
+    }
+    const result = await this.c2b.receive(body ?? {});
+    if (result.ResultCode !== 0) this.logger.warn(`M-Pesa webhook call not applied: ${result.ResultDesc}`);
     // Plain M-Pesa style reply ({"ResultCode":0,"ResultDesc":"Accepted"}), not the app's usual wrapper
-    res.status(HttpStatus.OK).json(await this.c2b.receive(body ?? {}));
+    res.status(HttpStatus.OK).json(result);
   }
 }
 
