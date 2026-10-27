@@ -30,11 +30,11 @@ export function isLightOnlyRoute(pathname: string): boolean {
 }
 
 /*
- * Phone status bar (theme-color). The opening splash keeps it blue; after that it
+ * Phone status bar (theme-color). The opening splash keeps it white; after that it
  * matches the page at the top edge, unless a full-screen loader overrides it.
  */
-const SPLASH_BLUE = '#0F2341';
-let pageStatusBar = SPLASH_BLUE;
+const SPLASH_COLOR = '#FFFFFF';
+let pageStatusBar = SPLASH_COLOR;
 let overrideStatusBar: string | null = null;
 
 function splashShowing(): boolean {
@@ -195,7 +195,7 @@ export function scheduleSample(): void {
 }
 
 function paintStatusBar(): void {
-  const color = splashShowing() ? SPLASH_BLUE : (overrideStatusBar ?? sampledTop ?? pageStatusBar);
+  const color = splashShowing() ? SPLASH_COLOR : (overrideStatusBar ?? sampledTop ?? pageStatusBar);
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   if (meta) meta.content = color;
   // The Android app draws the page behind the status bar: keep its clock and

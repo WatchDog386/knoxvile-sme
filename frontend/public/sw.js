@@ -1,6 +1,6 @@
 // Knoxville service worker — makes the app installable and lets the shell
 // open on a weak connection. API data is never cached (always live).
-const CACHE = 'knoxville-shell-v1';
+const CACHE = 'knoxville-shell-v2';
 const REQUIRED_SHELL = ['/', '/index.html'];
 const OPTIONAL_SHELL = ['/manifest.json', '/icons/splash-logo.png', '/icons/launch-192.png', '/icons/launch-512.png', '/icons/maskable-192.png', '/icons/maskable-512.png'];
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta http-equiv="Content-Security-Policy" content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http: https:; script-src * 'self' 'unsafe-inline' 'unsafe-eval' http: https:; style-src * 'self' 'unsafe-inline' http: https:; connect-src * 'self' http: https: ws: wss:;">
-    <meta name="theme-color" content="#0F2341" />
+    <meta name="theme-color" content="#FFFFFF" />
     <meta name="description" content="Knoxville Technologies Ltd business system — stock, sales, invoices and daily transaction reports." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -17,11 +17,11 @@
     <title>Knoxville Technologies</title>
     <style>
       /* Boot splash: shown until the app renders. Matches the manifest launch screen. */
-      html.booting, html.booting body { background: #0F2341; }
+      html.booting, html.booting body { background: #FFFFFF; }
       #splash-screen {
         position: fixed;
         inset: 0;
-        background: #0F2341;
+        background: #FFFFFF;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -61,7 +61,7 @@
       });
     </script>
     <div id="splash-screen" aria-hidden="true">
-      <img src="/icons/splash-logo.png" alt="" width="1200" height="576" />
+      <img src="/icons/splash-logo.png" alt="" />
     </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

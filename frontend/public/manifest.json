@@ -12,8 +12,8 @@
     "standalone"
   ],
   "orientation": "any",
-  "background_color": "#0F2341",
-  "theme_color": "#0F2341",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
   "categories": [
     "business",
     "productivity",
