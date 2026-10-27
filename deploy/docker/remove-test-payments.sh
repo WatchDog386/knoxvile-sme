@@ -21,10 +21,11 @@ psql -At -c "SELECT '  customers:       ' || count(*) || COALESCE(' (' || string
 read -r -p "Go ahead? Type yes: " OK
 [ "$OK" = "yes" ] || { echo "Nothing removed."; exit 0; }
 
-mkdir -p backups
-FILE="backups/before_test_cleanup_$(date +%Y%m%d_%H%M%S).dump"
+# Your home folder (deploy/docker/backups belongs to the nightly backup service)
+mkdir -p "$HOME/sme-backups"
+FILE="$HOME/sme-backups/before_test_cleanup_$(date +%Y%m%d_%H%M%S).dump"
 docker compose -f docker-compose.yml --env-file .env exec -T db sh -c 'pg_dump -Fc -U "$POSTGRES_USER" -d "$POSTGRES_DB"' > "$FILE"
-echo "Backup saved: deploy/docker/$FILE"
+echo "Backup saved: $FILE"
 
 psql <<SQL
 BEGIN;
