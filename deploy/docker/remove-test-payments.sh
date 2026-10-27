@@ -6,9 +6,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 [ -f .env ] || { echo "Run this on the server, from the knoxvile-sme folder." >&2; exit 1; }
-set -a; . ./.env; set +a
-DB_USER=${POSTGRES_USER:-knoxville}; DB_NAME=${POSTGRES_DB:-kenya_sme}
-psql() { docker compose -f docker-compose.yml --env-file .env exec -T db psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" "$@"; }
+# The database container already knows its own user and database name
+psql() { docker compose -f docker-compose.yml --env-file .env exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$@"' psql "$@"; }
 
 IDS="'TEST0001','TEST0002','TEST0003','TEST0004','TEST0005','TEST0006','TEST0007','TEST0008','TEST0009'"
 KEYS="SELECT 'mpesa-' || t || '-' || k FROM unnest(ARRAY[$IDS]) t, unnest(ARRAY['payment','unmatched','package','credit']) k"
@@ -24,7 +23,7 @@ read -r -p "Go ahead? Type yes: " OK
 
 mkdir -p backups
 FILE="backups/before_test_cleanup_$(date +%Y%m%d_%H%M%S).dump"
-docker compose -f docker-compose.yml --env-file .env exec -T db pg_dump -Fc -U "$DB_USER" -d "$DB_NAME" > "$FILE"
+docker compose -f docker-compose.yml --env-file .env exec -T db sh -c 'pg_dump -Fc -U "$POSTGRES_USER" -d "$POSTGRES_DB"' > "$FILE"
 echo "Backup saved: deploy/docker/$FILE"
 
 psql <<SQL
